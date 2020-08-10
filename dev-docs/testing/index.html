@@ -653,24 +653,24 @@ an <code>ERROR: Unable to find an ack-generate binary</code> message and give yo
 opportunity to rectify the situation.</p>
 <h2 id="build-an-ack-controller">Build an ACK controller<a class="headerlink" href="#build-an-ack-controller" title="Permanent link">&para;</a></h2>
 <p>Define the service you want to build and test an ACK controller for by setting
-the <code>SERVICE_TO_BUILD</code> environment variable, in our case for Amazon ECR:</p>
-<table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="codehilite"><pre><span></span><code><span class="err">SERVICE_TO_BUILD=&quot;ecr&quot;</span>
+the <code>SERVICE</code> environment variable, in our case for Amazon ECR:</p>
+<table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="codehilite"><pre><span></span><code><span class="err">SERVICE=&quot;ecr&quot;</span>
 </code></pre></div>
 </td></tr></table>
 
 <p>Now we are in a position to generate the ACK service controller for the AWS ECR
-API and output the generated code to the <code>services/$SERVICE_TO_BUILD</code> directory:</p>
-<table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="codehilite"><pre><span></span><code><span class="err">./scripts/build-controller.sh $SERVICE_TO_BUILD</span>
+API and output the generated code to the <code>services/$SERVICE</code> directory:</p>
+<table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="codehilite"><pre><span></span><code><span class="err">make build-controller SERVICE=$SERVICE</span>
 </code></pre></div>
 </td></tr></table>
 
 <p>Above generates the custom resource definition (CRD) manifests for resources
 managed by that ACK service controller. It further generates the Helm chart
-that can be used to install those CRD manifests and a deployment manifest 
+that can be used to install those CRD manifests, and a deployment manifest 
 that runs the ACK service controller in a pod on a Kubernetes cluster (still TODO).</p>
 <h2 id="run-tests">Run tests<a class="headerlink" href="#run-tests" title="Permanent link">&para;</a></h2>
 <p>Time to run the tests, so execute:</p>
-<table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="codehilite"><pre><span></span><code><span class="err">./scripts/kind-build-test.sh -s $SERVICE_TO_BUILD</span>
+<table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="codehilite"><pre><span></span><code><span class="err">make kind-cluster -s SERVICE=$SERVICE</span>
 </code></pre></div>
 </td></tr></table>
 
@@ -680,11 +680,17 @@ It then installs the ACK service controller and related Kubernetes manifests int
 the <code>kind</code> cluster using <code>kustomize build | kubectl apply -f -</code>.</p>
 <p>Then, the above script runs a series of bash test scripts that call <code>kubectl</code>
 and the <code>aws</code> CLI tools to verify that custom resources of the type managed by
-the respective ACK service controller are created, updated and deleted
+the respective ACK service controller is created, updated and deleted
 appropriately (still TODO).</p>
-<p>Fianlly, the script deletes the <code>kind</code> cluster. You can prevent this last
+<p>The script deletes the <code>kind</code> cluster. You can prevent this last
 step from happening by passing the <code>-p</code> (for "preserve") flag to the
-<code>scripts/kind-build-test.sh</code> script.</p>
+<code>scripts/kind-build-test.sh</code> script or by <code>make kind-cluster-preserve SERVICE=ecr</code>.</p>
+<p>Finally, if you would like to do functional testing, where you would like to create a AWS Services 
+in your account using <code>KinD</code> cluster, please use <code>-r</code> and pass in <code>AWS ROLE ARN</code> to <code>scripts/kind-build-test.sh</code> script or
+<code>make kind-cluster-functional SERVICE=ecr ROLE_ARN=arn:aws:iam::12345678980:role/Admin-k8s</code></p>
+<p>Note: For above functional test, <code>sts-assume-role.sh</code> under <code>scripts/lib</code> directory will 
+make <code>aws sts assume-role --role-session-arn $AWS_ROLE_ARN --role-session-name $TEMP_ROLE</code> API call to fetch <code>AWS_ACCESS_KEY_ID</code>, 
+<code>AWS_SECRET_ACCESS_KEY</code>, <code>AWS_SESSION_TOKEN</code> variable and inject them as secrets to the deployment. The duration of the session token is 900 seconds (15 minutes)</p>
 <div class="admonition tip">
 <p class="admonition-title">Tracking testing</p>
 <p>We track testing in the umbrella <a href="https://github.com/aws/aws-controllers-k8s/issues/6">issue 6</a>.
@@ -696,6 +702,11 @@ testing-related issue, mention it from there.</p>
 configuration files created by the script specifically for your test cluster,
 execute:</p>
 <table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="codehilite"><pre><span></span><code><span class="err">kind delete cluster --name $CLUSTER_NAME</span>
+</code></pre></div>
+</td></tr></table>
+
+<p>or to delete all kind cluster running on your machine execute: </p>
+<table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="codehilite"><pre><span></span><code><span class="err">make delete-all-kind-clusters</span>
 </code></pre></div>
 </td></tr></table>
                 
